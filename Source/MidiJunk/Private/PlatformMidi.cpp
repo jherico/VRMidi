@@ -164,7 +164,7 @@ namespace Tribe {
 		{
 			Win32Midi* lib = reinterpret_cast<Win32Midi*>(dwInstance);
 			DWORD midiMessage = static_cast<DWORD>(dwParam1);
-			BYTE status = static_cast<BYTE>(midiMessage & 0x7F);
+			BYTE status = static_cast<BYTE>(midiMessage & 0xFF);
 			BYTE data1 = static_cast<BYTE>((midiMessage >> 8) & 0xFF);
 			BYTE data2 = static_cast<BYTE>((midiMessage >> 16) & 0xFF);
 			lib->callback(status, data1, data2);

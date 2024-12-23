@@ -8,6 +8,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "PlatformMidi.h"
 #include "Drawing.h"
+#include "HAL/CriticalSection.h"
 #include "MyMIDIManager.generated.h"
 
 using FMIDIAction = TFunction<void(int32)>;
@@ -54,11 +55,15 @@ public:
 
 private:
 	TMap<int32, FMIDIAction> MIDIActionMap;
+
+	FCriticalSection Mutex;
 	FDrawingInstructions DrawingInstructions;
+
 	FVector2D CurrentPosition{ 0, 0 };
 	FLinearColor CurrentColor{ FLinearColor::White };
 	Tribe::PlatformMidi* MidiPtr{ nullptr };
 
+	void Redraw();
 	void CoarseX(int32 velocity);
 	void CoarseY(int32 velocity);
 	void FineX(int32 velocity);

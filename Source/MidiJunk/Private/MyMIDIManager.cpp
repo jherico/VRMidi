@@ -5,17 +5,18 @@
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Canvas.h"
 #include "Materials/MaterialInstanceDynamic.h"
+#include "HAL/PlatformProcess.h"
 
 static const auto POWDER = FLinearColor(0.74f, 1.0f, 0.74f);
 static const auto CYAN = FLinearColor(0.0f, 1.0f, 1.0f);
 static const auto YELLOW = FLinearColor(1.0f, 1.0f, 0.0f);
 static const auto MAGENTA = FLinearColor(1.0f, 0.0f, 0.0f);
 
-static const auto L_DECK_CHANNEL = 0x01;
-static const auto R_DECK_CHANNEL = 0x02;
+static const auto L_CONTROL_STATUS = 0xb0;
+static const auto R_CONTROL_STATUS = 0xb1;
+static const auto L_NOTE_STATUS = 0x97;
+static const auto R_NOTE_STATUS = 0x99;
 
-static const auto L_PAD_CHANNEL = 0x08;
-static const auto R_PAD_CHANNEL = 0x0a;
 static const auto PLATTER_SPIN_ID = 0x22;
 static const auto SIDE_SPIN_ID = 0x21;
 
@@ -61,27 +62,26 @@ void AMyMIDIManager::BeginPlay()
 {
 	Super::BeginPlay();
 	CurrentPosition = { SIZE.X / 2, SIZE.Y / 2 };
-	MIDIActionMap.Add(makeMapKey(L_DECK_CHANNEL, PLATTER_SPIN_ID), [this](int32 Velocity) { CoarseX(Velocity); });
-	MIDIActionMap.Add(makeMapKey(L_DECK_CHANNEL, PLATTER_SPIN_ID), [this](int32 Velocity) { CoarseX(Velocity); });
-	MIDIActionMap.Add(makeMapKey(L_DECK_CHANNEL, SIDE_SPIN_ID), [this](int32 Velocity) {FineX(Velocity); });
-	MIDIActionMap.Add(makeMapKey(R_DECK_CHANNEL, PLATTER_SPIN_ID), [this](int32 Velocity) {CoarseY(Velocity); });
-	MIDIActionMap.Add(makeMapKey(R_DECK_CHANNEL, SIDE_SPIN_ID), [this](int32 Velocity) {FineY(Velocity); });
-	MIDIActionMap.Add(makeMapKey(L_PAD_CHANNEL, 0), [this](int32 Velocity) { SetColor(0, FLinearColor::White); });
-	MIDIActionMap.Add(makeMapKey(L_PAD_CHANNEL, 1), [this](int32 Velocity) { SetColor(0, FLinearColor::Red); });
-	MIDIActionMap.Add(makeMapKey(L_PAD_CHANNEL, 2), [this](int32 Velocity) { SetColor(0, FLinearColor::Green); });
-	MIDIActionMap.Add(makeMapKey(L_PAD_CHANNEL, 3), [this](int32 Velocity) { SetColor(0, FLinearColor::Blue); });
-	MIDIActionMap.Add(makeMapKey(L_PAD_CHANNEL, 4), [this](int32 Velocity) { SetColor(0, CYAN); });
-	MIDIActionMap.Add(makeMapKey(L_PAD_CHANNEL, 5), [this](int32 Velocity) { SetColor(0, YELLOW); });
-	MIDIActionMap.Add(makeMapKey(L_PAD_CHANNEL, 6), [this](int32 Velocity) { SetColor(0, MAGENTA); });
-	MIDIActionMap.Add(makeMapKey(L_PAD_CHANNEL, 7), [this](int32 Velocity) { SetColor(0, FLinearColor::Black); });
-	MIDIActionMap.Add(makeMapKey(R_PAD_CHANNEL, 0), [this](int32 Velocity) { SetColor(0, FLinearColor::White); });
-	MIDIActionMap.Add(makeMapKey(R_PAD_CHANNEL, 1), [this](int32 Velocity) { SetColor(0, FLinearColor::Red); });
-	MIDIActionMap.Add(makeMapKey(R_PAD_CHANNEL, 2), [this](int32 Velocity) { SetColor(0, FLinearColor::Green); });
-	MIDIActionMap.Add(makeMapKey(R_PAD_CHANNEL, 3), [this](int32 Velocity) { SetColor(0, FLinearColor::Blue); });
-	MIDIActionMap.Add(makeMapKey(R_PAD_CHANNEL, 4), [this](int32 Velocity) { SetColor(0, CYAN); });
-	MIDIActionMap.Add(makeMapKey(R_PAD_CHANNEL, 5), [this](int32 Velocity) { SetColor(0, YELLOW); });
-	MIDIActionMap.Add(makeMapKey(R_PAD_CHANNEL, 6), [this](int32 Velocity) { SetColor(0, MAGENTA); });
-	MIDIActionMap.Add(makeMapKey(R_PAD_CHANNEL, 7), [this](int32 Velocity) { SetColor(0, FLinearColor::Black); });
+	MIDIActionMap.Add(makeMapKey(L_CONTROL_STATUS, PLATTER_SPIN_ID), [this](int32 Velocity) { CoarseX(Velocity); });
+	MIDIActionMap.Add(makeMapKey(L_CONTROL_STATUS, SIDE_SPIN_ID), [this](int32 Velocity) {FineX(Velocity); });
+	MIDIActionMap.Add(makeMapKey(R_CONTROL_STATUS, PLATTER_SPIN_ID), [this](int32 Velocity) {CoarseY(Velocity); });
+	MIDIActionMap.Add(makeMapKey(R_CONTROL_STATUS, SIDE_SPIN_ID), [this](int32 Velocity) {FineY(Velocity); });
+	MIDIActionMap.Add(makeMapKey(L_NOTE_STATUS, 0), [this](int32 Velocity) { SetColor(0, FLinearColor::White); });
+	MIDIActionMap.Add(makeMapKey(L_NOTE_STATUS, 1), [this](int32 Velocity) { SetColor(0, FLinearColor::Red); });
+	MIDIActionMap.Add(makeMapKey(L_NOTE_STATUS, 2), [this](int32 Velocity) { SetColor(0, FLinearColor::Green); });
+	MIDIActionMap.Add(makeMapKey(L_NOTE_STATUS, 3), [this](int32 Velocity) { SetColor(0, FLinearColor::Blue); });
+	MIDIActionMap.Add(makeMapKey(L_NOTE_STATUS, 4), [this](int32 Velocity) { SetColor(0, CYAN); });
+	MIDIActionMap.Add(makeMapKey(L_NOTE_STATUS, 5), [this](int32 Velocity) { SetColor(0, YELLOW); });
+	MIDIActionMap.Add(makeMapKey(L_NOTE_STATUS, 6), [this](int32 Velocity) { SetColor(0, MAGENTA); });
+	MIDIActionMap.Add(makeMapKey(L_NOTE_STATUS, 7), [this](int32 Velocity) { SetColor(0, FLinearColor::Black); });
+	MIDIActionMap.Add(makeMapKey(R_NOTE_STATUS, 0), [this](int32 Velocity) { SetColor(0, FLinearColor::White); });
+	MIDIActionMap.Add(makeMapKey(R_NOTE_STATUS, 1), [this](int32 Velocity) { SetColor(0, FLinearColor::Red); });
+	MIDIActionMap.Add(makeMapKey(R_NOTE_STATUS, 2), [this](int32 Velocity) { SetColor(0, FLinearColor::Green); });
+	MIDIActionMap.Add(makeMapKey(R_NOTE_STATUS, 3), [this](int32 Velocity) { SetColor(0, FLinearColor::Blue); });
+	MIDIActionMap.Add(makeMapKey(R_NOTE_STATUS, 4), [this](int32 Velocity) { SetColor(0, CYAN); });
+	MIDIActionMap.Add(makeMapKey(R_NOTE_STATUS, 5), [this](int32 Velocity) { SetColor(0, YELLOW); });
+	MIDIActionMap.Add(makeMapKey(R_NOTE_STATUS, 6), [this](int32 Velocity) { SetColor(0, MAGENTA); });
+	MIDIActionMap.Add(makeMapKey(R_NOTE_STATUS, 7), [this](int32 Velocity) { SetColor(0, FLinearColor::Black); });
 
 
 	// Create a Dynamic Material Instance from the material on the Static Mesh
@@ -108,7 +108,7 @@ void AMyMIDIManager::BeginPlay()
 		if (device.name == "DDJ-FLX2" || device.name == "DDJ-FLX4") {
 			MidiPtr->openDevice(device.name, [this](uint8 status, int8 data1, int8 data2) {
 				OnMidiEvent(status, data1, data2);
-			});
+				});
 			break;
 		}
 	}
@@ -124,21 +124,36 @@ void AMyMIDIManager::DrawToCanvasRenderTarget(UCanvas* Canvas, int32 Width, int3
 {
 	if (!Canvas)
 		return;
+	FScopeLock Lock(&Mutex); // Lock on this thread
 	DrawingInstructions.RenderToCanvas(Canvas);
 }
 
 void AMyMIDIManager::Clear() {
-	DrawingInstructions.ClearInstructions();
-	CanvasRenderTarget->UpdateResource(); // Ensure the render target is updated
+	{
+		FScopeLock Lock(&Mutex); // Lock on this thread
+		DrawingInstructions.ClearInstructions();
+	}
+	Redraw();
 }
 
 void AMyMIDIManager::Reset() {
 	Clear();
 	CurrentPosition = { SIZE.X / 2, SIZE.Y / 2 };
-
-
 }
 
+void AMyMIDIManager::Redraw() {
+	if (IsInGameThread()) {
+		if (CanvasRenderTarget)
+		{
+			// Ensure the render target is updated
+			CanvasRenderTarget->UpdateResource();
+		}
+	} else {
+		// Enqueue a task on the game thread
+		AsyncTask(ENamedThreads::GameThread, [this]() { Redraw(); });
+	}
+
+}
 
 void AMyMIDIManager::DrawTo(const FVector2D& v) {
 	const auto clampedv = FVector2D(
@@ -155,9 +170,12 @@ void AMyMIDIManager::DrawTo(const FVector2D& v) {
 	}
 
 	if (CurrentColor != FLinearColor::Black) {
+		FScopeLock Lock(&Mutex); // Lock on this thread
 		DrawingInstructions.AddInstruction(CurrentPosition, clampedv, CurrentColor);
+		Redraw();
 	}
-	CanvasRenderTarget->UpdateResource(); // Ensure the render target is updated
+
+
 	MoveTo(clampedv);
 }
 
