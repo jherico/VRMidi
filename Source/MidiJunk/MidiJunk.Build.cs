@@ -11,8 +11,6 @@ public class MidiJunk : ModuleRules
 
         PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
 
-        PrivateDependencyModuleNames.AddRange(new string[] {  });
-
         PrivateIncludePaths.AddRange(new string[] { "MidiJunk/Private" });
 
         PublicIncludePaths.AddRange(new string[] {
@@ -20,7 +18,7 @@ public class MidiJunk : ModuleRules
         });
 
         // Uncomment if you are using Slate UI
-        // PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
+        PrivateDependencyModuleNames.AddRange(new string[] { "TribeMIDI", });
 
         // Uncomment if you are using online features
         // PrivateDependencyModuleNames.Add("OnlineSubsystem");

@@ -15,6 +15,10 @@
 	],
 	"Plugins": [
 		{
+			"Name": "TribeMIDI",
+			"Enabled": true
+		},
+		{
 			"Name": "OpenXR",
 			"Enabled": true,
 			"SupportedTargetPlatforms": [

@@ -6,7 +6,6 @@
 #include "GameFramework/Actor.h"
 #include "Engine/CanvasRenderTarget2D.h"
 #include "Materials/MaterialInstanceDynamic.h"
-#include "PlatformMidi.h"
 #include "Drawing.h"
 #include "HAL/CriticalSection.h"
 #include "MyMIDIManager.generated.h"
@@ -15,6 +14,7 @@ using FMIDIAction = TFunction<void(int32)>;
 using MIDIHANDLE = void*;
 
 
+class UTribeMIDISubsystem;
 
 
 UCLASS()
@@ -61,7 +61,7 @@ private:
 
 	FVector2D CurrentPosition{ 0, 0 };
 	FLinearColor CurrentColor{ FLinearColor::White };
-	Tribe::PlatformMidi* MidiPtr{ nullptr };
+	UTribeMIDISubsystem* MIDISubsystem{ nullptr };
 
 	void Redraw();
 	void CoarseX(int32 velocity);

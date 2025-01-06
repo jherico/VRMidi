@@ -1,6 +1,7 @@
 #include "PlatformMidi.h"
 
-#if defined(PLATFORM_WINDOWS) || 1
+#if 0
+#if defined(PLATFORM_WINDOWS)
 #include <Windows.h>
 #include <mmsystem.h>
 #pragma comment(lib, "winmm.lib")
@@ -179,10 +180,18 @@ namespace Tribe {
 #include <amidi/AMidi.h>
 namespace Tribe {
 
-	class AndroidMidi : public PlatformMidi {
+	PlatformMidi* PlatformMidi::create() {
+		return nullptr;
+	}
 
-	};
 }
 #else
 #error "Invalid platform"
+#endif
+#else
+namespace Tribe {
+	PlatformMidi* PlatformMidi::create() {
+		return nullptr;
+	}
+}
 #endif

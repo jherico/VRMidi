@@ -6,6 +6,9 @@
 #include "Engine/Canvas.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "HAL/PlatformProcess.h"
+#include "TribeMIDISubsystem.h"
+
+#undef UpdateResource
 
 static const auto POWDER = FLinearColor(0.74f, 1.0f, 0.74f);
 static const auto CYAN = FLinearColor(0.0f, 1.0f, 1.0f);
@@ -23,7 +26,7 @@ static const auto SIDE_SPIN_ID = 0x21;
 static const float SCALE = 0.8f;
 static const float FINE_SCALE = SCALE * 0.2;
 
-static const FVector2D SIZE{ 1024, 768 };
+static const FVector2D SKETCH_SIZE{ 1024, 768 };
 
 // Sets default values
 AMyMIDIManager::AMyMIDIManager()
@@ -45,7 +48,7 @@ inline constexpr int32 makeMapKey(int32 channel, int32 controlId) {
 }
 
 void AMyMIDIManager::OnMidiEvent(uint8 status, int8 data1, int8 data2) {
-	UE_LOG(LogTemp, Log, TEXT("MIDI Event: status=0x%02x, data1=0x%02x, data2=0x%02x"),
+	UE_LOG(LogTemp, Log, TEXT("UTribeMIDISubsystem MIDI in Event: status=0x%02x, data1=0x%02x, data2=0x%02x"),
 		(int32)status, data1, data2);
 
 	const auto mapKey = makeMapKey(status, data1);
@@ -60,8 +63,9 @@ void AMyMIDIManager::OnMidiEvent(uint8 status, int8 data1, int8 data2) {
 // Called when the game starts or when spawned
 void AMyMIDIManager::BeginPlay()
 {
+	UE_LOG(LogTemp, Log, TEXT("AMyMIDIManager::BeginPlay"));
 	Super::BeginPlay();
-	CurrentPosition = { SIZE.X / 2, SIZE.Y / 2 };
+	CurrentPosition = { SKETCH_SIZE.X / 2, SKETCH_SIZE.Y / 2 };
 	MIDIActionMap.Add(makeMapKey(L_CONTROL_STATUS, PLATTER_SPIN_ID), [this](int32 Velocity) { CoarseX(Velocity); });
 	MIDIActionMap.Add(makeMapKey(L_CONTROL_STATUS, SIDE_SPIN_ID), [this](int32 Velocity) {FineX(Velocity); });
 	MIDIActionMap.Add(makeMapKey(R_CONTROL_STATUS, PLATTER_SPIN_ID), [this](int32 Velocity) {CoarseY(Velocity); });
@@ -83,6 +87,27 @@ void AMyMIDIManager::BeginPlay()
 	MIDIActionMap.Add(makeMapKey(R_NOTE_STATUS, 6), [this](int32 Velocity) { SetColor(0, MAGENTA); });
 	MIDIActionMap.Add(makeMapKey(R_NOTE_STATUS, 7), [this](int32 Velocity) { SetColor(0, FLinearColor::Black); });
 
+	MIDISubsystem = GetGameInstance()->GetSubsystem<UTribeMIDISubsystem>();
+	check(MIDISubsystem);
+	FString deviceName;
+	bool foundDevice = false;
+	UE_LOG(LogTemp, Log, TEXT("UTribeMIDISubsystem enumerating"));
+	for (const auto& device : MIDISubsystem->EnumerateDevices()) {
+		UE_LOG(LogTemp, Log, TEXT("UTribeMIDISubsystem Device: name=%s, in=%d, out=%d"),
+			*device.Name, device.bIn ? 1 : 0, device.bOut ? 1 : 0);
+		if (!foundDevice && device.Name.Contains(TEXT("FLX2"))) {
+			foundDevice = true;
+			deviceName = device.Name;
+			UE_LOG(LogTemp, Log, TEXT("UTribeMIDISubsystem Using Device: name=%s"),
+				*deviceName);
+		}
+	}
+
+	if (foundDevice) {
+		MIDISubsystem->OnMidiEvent.AddDynamic(this, &AMyMIDIManager::OnMidiEvent);
+		MIDISubsystem->OpenDevice(deviceName);
+	}
+
 
 	// Create a Dynamic Material Instance from the material on the Static Mesh
 	if (StaticMeshComponent && StaticMeshComponent->GetMaterial(0))
@@ -98,20 +123,19 @@ void AMyMIDIManager::BeginPlay()
 		CanvasRenderTarget->OnCanvasRenderTargetUpdate.AddDynamic(this, &AMyMIDIManager::DrawToCanvasRenderTarget);
 		// Set the CanvasRenderTarget as a parameter for the dynamic material
 		DynamicMaterialInstance->SetTextureParameterValue(FName("DynamicTexture"), CanvasRenderTarget);
-		CanvasRenderTarget->UpdateResource(); // Ensure the render target is updated
+		CanvasRenderTarget->UpdateResource(); 
 	}
 
-	MidiPtr = Tribe::PlatformMidi::create();
 
-	auto inDevices = MidiPtr->enumerateDevices();
-	for (const auto& device : inDevices) {
-		if (device.name == "DDJ-FLX2" || device.name == "DDJ-FLX4") {
-			MidiPtr->openDevice(device.name, [this](uint8 status, int8 data1, int8 data2) {
-				OnMidiEvent(status, data1, data2);
-				});
-			break;
-		}
-	}
+	//auto inDevices = MidiPtr->enumerateDevices();
+	//for (const auto& device : inDevices) {
+	//	if (device.name == "DDJ-FLX2" || device.name == "DDJ-FLX4") {
+	//		MidiPtr->openDevice(device.name, [this](uint8 status, int8 data1, int8 data2) {
+	//			OnMidiEvent(status, data1, data2);
+	//			});
+	//		break;
+	//	}
+	//}
 }
 
 // Called every frame
@@ -138,7 +162,7 @@ void AMyMIDIManager::Clear() {
 
 void AMyMIDIManager::Reset() {
 	Clear();
-	CurrentPosition = { SIZE.X / 2, SIZE.Y / 2 };
+	CurrentPosition = { SKETCH_SIZE.X / 2, SKETCH_SIZE.Y / 2 };
 }
 
 void AMyMIDIManager::Redraw() {
@@ -157,8 +181,8 @@ void AMyMIDIManager::Redraw() {
 
 void AMyMIDIManager::DrawTo(const FVector2D& v) {
 	const auto clampedv = FVector2D(
-		std::clamp(v.X, 0.0, SIZE.X),
-		std::clamp(v.Y, 0.0, SIZE.Y)
+		std::clamp(v.X, 0.0, SKETCH_SIZE.X),
+		std::clamp(v.Y, 0.0, SKETCH_SIZE.Y)
 	);
 	if (clampedv != v) {
 		UE_LOG(LogTemp, Log, TEXT("Clamped position"));
@@ -185,8 +209,8 @@ void AMyMIDIManager::Draw(const FVector2D& delta) {
 
 void AMyMIDIManager::MoveTo(const FVector2D& v) {
 	const auto clampedv = FVector2D(
-		std::clamp(v.X, 0.0, SIZE.X),
-		std::clamp(v.Y, 0.0, SIZE.Y)
+		std::clamp(v.X, 0.0, SKETCH_SIZE.X),
+		std::clamp(v.Y, 0.0, SKETCH_SIZE.Y)
 	);
 	CurrentPosition = clampedv;
 }
